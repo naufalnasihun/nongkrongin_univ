@@ -3,13 +3,18 @@
 
 ---
 
-### IDENTITAS MAHASISWA
+### I. IDENTITAS MAHASISWA & PROYEK
 
-| Field | Keterangan |
-|-------|------------|
-| **NIM** | 2495114016 |
+| Komponen | Isian Mahasiswa |
+|----------|-----------------|
 | **Nama Lengkap** | Naufal Nashihun Nizhom |
-| **Kelas** | Karyawan / V |
+| **NIM** | 2495114016 |
+| **Kelas / Semester** | Karyawan / V (Lima) |
+| **Nama Kelompok** | Kelompok 2 |
+| **Judul Proyek Web** | Nongkrongin univ |
+| **Kasus Proyek Kelompok** | Sistem Pre-Order Makanan dan Minuman Kantin Kampus |
+| **URL Repositori Git** | https://github.com/naufalnasihun/nongkrongin_univ |
+| **Branch Pengerjaan** | main |
 | **Mata Kuliah** | Pemrograman Web Lanjut |
 | **Tanggal Pengerjaan** | 22 September 2026 |
 
