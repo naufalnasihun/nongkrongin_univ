@@ -18,7 +18,9 @@
 ## BAGIAN I — TAUTAN REPOSITORI
 
 > **Tautan Repositori GitHub/GitLab:**
-> *(Catatan: Setelah push dan setup remote, isi URL repositori di sini. Pastikan repositori bersifat **public** atau dosen/asisten sudah diundang sebagai collaborator.)*
+> 🔗 https://github.com/naufalnasihun/nongkrongin_univ.git
+>
+> *(Repositori bersifat **public**, dosen/asisten pengampu dapat mengakses langsung melalui tautan di atas tanpa perlu undangan collaborator.)*
 
 **Struktur repositori yang di-push:**
 ```
