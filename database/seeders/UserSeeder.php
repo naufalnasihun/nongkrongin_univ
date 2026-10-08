@@ -2,55 +2,64 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Admin;
-use App\Models\Kasir;
 use App\Models\Customer;
+use App\Models\Kasir;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        // 1. Akun Admin Statis
+        // =========================
+        // ADMIN
+        // =========================
         $adminUser = User::create([
-            'name' => 'Admin Kantin',
-            'email' => 'admin@gmail.com',
+            'name' => 'Admin Nongkrongin Univ',
+            'email' => 'admin@nongkrongin.test',
             'password' => Hash::make('password'),
         ]);
+
         Admin::create([
             'user_id' => $adminUser->id,
             'id_admin' => 'ADM001',
-            'nama' => 'Admin Utama',
+            'nama' => 'Admin Nongkrongin Univ',
         ]);
 
-        // 2. Akun Kasir Statis
+        // =========================
+        // KASIR
+        // =========================
         $kasirUser = User::create([
-            'name' => 'Kasir Kantin',
-            'email' => 'kasir@gmail.com',
+            'name' => 'Kasir Nongkrongin Univ',
+            'email' => 'kasir@nongkrongin.test',
             'password' => Hash::make('password'),
         ]);
+
         Kasir::create([
             'user_id' => $kasirUser->id,
             'id_kasir' => 'KSR001',
-            'nama' => 'Kasir Utama',
+            'nama' => 'Kasir Nongkrongin Univ',
         ]);
 
-        // 3. Akun Customer Statis (Naufal Nashihun)
+        // =========================
+        // CUSTOMER
+        // =========================
         $customerUser = User::create([
-            'name' => 'Naufal Nashihun Nizhom',
-            'email' => 'naufal@gmail.com',
+            'name' => 'Customer Nongkrongin Univ',
+            'email' => 'customer@nongkrongin.test',
             'password' => Hash::make('password'),
         ]);
+
         Customer::create([
             'user_id' => $customerUser->id,
-            'nim' => '2495114016',
-            'nama' => 'Naufal Nashihun Nizhom',
-            'kelas' => 'Karyawan / V',
+            'nama' => 'Customer Nongkrongin Univ',
+            'nim' => '20260001',
+            'kelas' => 'TI-A',
         ]);
-
-        // 4. Buat 10 Customer Acak via Factory
-        Customer::factory(10)->create();
     }
 }

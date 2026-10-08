@@ -4,9 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Customer extends Model
 {
@@ -14,22 +11,22 @@ class Customer extends Model
 
     protected $fillable = [
         'user_id',
-        'nim',
         'nama',
+        'nim',
         'kelas',
     ];
 
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function keranjang(): HasOne
+    public function keranjang()
     {
         return $this->hasOne(Keranjang::class);
     }
 
-    public function pesanans(): HasMany
+    public function pesanans()
     {
         return $this->hasMany(Pesanan::class);
     }
