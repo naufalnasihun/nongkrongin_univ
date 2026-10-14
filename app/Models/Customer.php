@@ -14,11 +14,24 @@ class Customer extends Model
         'nama',
         'nim',
         'kelas',
+        'saldo',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'saldo' => 'decimal:2',
+        ];
+    }
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function topups()
+    {
+        return $this->hasMany(Topup::class);
     }
 
     public function keranjang()

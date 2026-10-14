@@ -18,6 +18,7 @@ class KeranjangItem extends Model
 
     protected $casts = [
         'subtotal' => 'decimal:2',
+        'jumlah' => 'integer',
     ];
 
     public function keranjang()

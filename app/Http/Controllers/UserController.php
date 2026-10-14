@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\Kasir;
@@ -9,18 +11,34 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
     /**
      * Menampilkan daftar pengguna.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with(['admin', 'kasir', 'customer'])
-            ->latest()
-            ->get();
+        $query = User::with(['admin', 'kasir', 'customer'])->latest();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            match ($request->role) {
+                'Admin' => $query->whereHas('admin'),
+                'Kasir' => $query->whereHas('kasir'),
+                'Customer' => $query->whereHas('customer'),
+                default => null,
+            };
+        }
+
+        $users = $query->paginate(15)->withQueryString();
 
         return view('admin.users.index', compact('users'));
     }
@@ -36,90 +54,18 @@ class UserController extends Controller
     /**
      * Menyimpan pengguna baru.
      */
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-
-            'email' => 'required|email|max:255|unique:users,email',
-
-            'password' => 'required|string|min:6',
-
-            'role' => 'required|in:Admin,Kasir,Customer',
-
-            'nama' => 'required|string|max:255',
-
-            'nim' => [
-                'required_if:role,Customer',
-                'nullable',
-                'string',
-                'max:255',
-                'unique:customers,nim',
-            ],
-
-            'kelas' => [
-                'required_if:role,Customer',
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'id_kasir' => [
-                'required_if:role,Kasir',
-                'nullable',
-                'string',
-                'max:255',
-                'unique:kasirs,id_kasir',
-            ],
-
-            'id_admin' => [
-                'required_if:role,Admin',
-                'nullable',
-                'string',
-                'max:255',
-                'unique:admins,id_admin',
-            ],
-        ]);
+        $validated = $request->validated();
 
         DB::transaction(function () use ($validated) {
-
-            // Membuat akun User
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
             ]);
 
-            // Jika role Admin
-            if ($validated['role'] === 'Admin') {
-
-                Admin::create([
-                    'user_id' => $user->id,
-                    'id_admin' => $validated['id_admin'],
-                    'nama' => $validated['nama'],
-                ]);
-            }
-
-            // Jika role Kasir
-            elseif ($validated['role'] === 'Kasir') {
-
-                Kasir::create([
-                    'user_id' => $user->id,
-                    'id_kasir' => $validated['id_kasir'],
-                    'nama' => $validated['nama'],
-                ]);
-            }
-
-            // Jika role Customer
-            elseif ($validated['role'] === 'Customer') {
-
-                Customer::create([
-                    'user_id' => $user->id,
-                    'nama' => $validated['nama'],
-                    'nim' => $validated['nim'],
-                    'kelas' => $validated['kelas'],
-                ]);
-            }
+            $this->syncProfile($user, $validated);
         });
 
         return redirect()
@@ -139,108 +85,26 @@ class UserController extends Controller
 
     /**
      * Memperbarui data pengguna.
+     *
+     * PENTING: profil role (admin/kasir/customer) di-update secara in-place,
+     * bukan dihapus-dan-dibuat-ulang. Sebelumnya pola delete-recreate membuat
+     * seluruh riwayat pesanan customer ikut terhapus lewat cascade FK.
      */
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
+        $validated = $request->validated();
 
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($user->id),
-            ],
+        DB::transaction(function () use ($validated, $user) {
+            $user->name = $validated['name'];
+            $user->email = $validated['email'];
 
-            'password' => 'nullable|string|min:6',
-
-            'role' => 'required|in:Admin,Kasir,Customer',
-
-            'nama' => 'required|string|max:255',
-
-            'nim' => [
-                'required_if:role,Customer',
-                'nullable',
-                'string',
-                'max:255',
-                Rule::unique('customers', 'nim')->ignore(
-                    optional($user->customer)->id
-                ),
-            ],
-
-            'kelas' => [
-                'required_if:role,Customer',
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'id_kasir' => [
-                'required_if:role,Kasir',
-                'nullable',
-                'string',
-                'max:255',
-                Rule::unique('kasirs', 'id_kasir')->ignore(
-                    optional($user->kasir)->id
-                ),
-            ],
-
-            'id_admin' => [
-                'required_if:role,Admin',
-                'nullable',
-                'string',
-                'max:255',
-                Rule::unique('admins', 'id_admin')->ignore(
-                    optional($user->admin)->id
-                ),
-            ],
-        ]);
-
-        DB::transaction(function () use ($request, $user) {
-
-            // Update data akun
-            $user->name = $request->name;
-            $user->email = $request->email;
-
-            if ($request->filled('password')) {
-                $user->password = Hash::make($request->password);
+            if (! empty($validated['password'])) {
+                $user->password = Hash::make($validated['password']);
             }
 
             $user->save();
 
-            // Hapus profile role lama
-            Admin::where('user_id', $user->id)->delete();
-            Kasir::where('user_id', $user->id)->delete();
-            Customer::where('user_id', $user->id)->delete();
-
-            // Buat profile sesuai role baru
-            if ($request->role === 'Admin') {
-
-                Admin::create([
-                    'user_id' => $user->id,
-                    'id_admin' => $request->id_admin,
-                    'nama' => $request->nama,
-                ]);
-            }
-
-            elseif ($request->role === 'Kasir') {
-
-                Kasir::create([
-                    'user_id' => $user->id,
-                    'id_kasir' => $request->id_kasir,
-                    'nama' => $request->nama,
-                ]);
-            }
-
-            elseif ($request->role === 'Customer') {
-
-                Customer::create([
-                    'user_id' => $user->id,
-                    'nama' => $request->nama,
-                    'nim' => $request->nim,
-                    'kelas' => $request->kelas,
-                ]);
-            }
+            $this->syncProfile($user, $validated);
         });
 
         return redirect()
@@ -253,10 +117,68 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        // Cegah admin menghapus akunnya sendiri.
+        if ($user->id === auth()->id()) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        }
+
         $user->delete();
 
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'Pengguna berhasil dihapus.');
+    }
+
+    /**
+     * Sinkronkan profil role tanpa menghapus data yang sudah ada.
+     *
+     * - Role aktif: update in-place bila sudah ada, create bila belum.
+     * - Role lain yang tidak lagi dipakai: hanya dihapus bila aman
+     *   (tidak punya riwayat pesanan/keranjang) agar tidak memutus FK.
+     */
+    private function syncProfile(User $user, array $data): void
+    {
+        $role = $data['role'];
+
+        if ($role === 'Admin') {
+            Admin::updateOrCreate(
+                ['user_id' => $user->id],
+                ['id_admin' => $data['id_admin'] ?? null, 'nama' => $data['nama']],
+            );
+        } elseif ($role === 'Kasir') {
+            Kasir::updateOrCreate(
+                ['user_id' => $user->id],
+                ['id_kasir' => $data['id_kasir'] ?? null, 'nama' => $data['nama']],
+            );
+        } elseif ($role === 'Customer') {
+            Customer::updateOrCreate(
+                ['user_id' => $user->id],
+                ['nim' => $data['nim'], 'kelas' => $data['kelas'], 'nama' => $data['nama']],
+            );
+        }
+
+        // Bersihkan profil role lain yang tidak lagi dipakai, tapi JANGAN hapus
+        // bila masih memiliki transaksi (menjaga integritas riwayat).
+        if ($role !== 'Admin') {
+            $user->admin()->delete();
+        }
+
+        if ($role !== 'Kasir') {
+            $kasir = $user->kasir;
+
+            if ($kasir && ! $kasir->pesanans()->exists()) {
+                $kasir->delete();
+            }
+        }
+
+        if ($role !== 'Customer') {
+            $customer = $user->customer;
+
+            if ($customer && ! $customer->pesanans()->exists() && ! $customer->keranjang()->exists()) {
+                $customer->delete();
+            }
+        }
     }
 }
